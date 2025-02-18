@@ -491,7 +491,7 @@ const LandingPage: React.FC = () => {
           <Table
             rowKey="key"                  // ensures each row is uniquely identified
             bordered                      // adds borders for clarity
-            columns={columns}
+            columns={columns as any}
             dataSource={data}
             pagination={isMobile ? { simple: true } : {}}
             size="small"

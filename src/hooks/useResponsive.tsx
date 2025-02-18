@@ -150,6 +150,7 @@ export default function useResponsive<BPC extends BreakpointCategories = typeof 
   });
 
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  //@ts-ignore
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Utility function for logging when debug is enabled
