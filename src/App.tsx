@@ -121,13 +121,12 @@ const LandingPage: React.FC = () => {
   const getColumnDateFilterProps = (dataIndex: string) => ({
     filterDropdown: ({
       setSelectedKeys,
-      selectedKeys,
       confirm,
       clearFilters,
     }: any) => (
       <div style={{ padding: 8 }}>
         <RangePicker
-          onChange={(dates, dateStrings) => {
+          onChange={(_, dateStrings) => {
             setSelectedKeys(
               dateStrings && dateStrings[0] && dateStrings[1] ? [dateStrings] : []
             );
