@@ -12,6 +12,7 @@ import useEmail from "./jotai/useEmail";
 import useAuth from "./hooks/useAuth";
 import useAuthorization from "./server/useAuthorization";
 import { List } from "antd";
+import Papa from "papaparse";
 
 const { RangePicker } = DatePicker;
 
@@ -379,6 +380,25 @@ const LandingPage: React.FC = () => {
   }
 
   useEffect(() => {
+    fetch("/test.csv")
+      .then(res => res.text())
+      .then(csvText => {
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            console.log("Parsed CSV:", results.data.map((d: any) => ({ ...d,
+              childrenAges: d.childrenAges.split(",").map((v: any) => v.trim()),
+              hobbies: d.hobbies.split(",").map((v: any) => v.trim()),
+              roleDefinition: d.roleDefinition.trim(),
+            })));
+          }
+        })
+      })
+  }, [])
+
+
+  useEffect(() => {
     if (email) {
       setLoginModal(false)
       validateEmail()
@@ -391,23 +411,22 @@ const LandingPage: React.FC = () => {
       get().then(people => setData(people))
   }, [isValid])
 
-
   if (window.location.pathname === "/shrek") {
     return (
       <ConfigProvider direction="rtl" locale={heIL}>
         <div style={{ padding: "20px", textAlign: "center" }}>
-        <Typography.Title level={2}>רשימת הרשאות</Typography.Title>
-        <Input.Search
-          placeholder="אימייל"
-          enterButton="הוספה"
-          onSearch={onAddingUser}
-          style={{ width: 300 }}
-        />
-        <List
-          dataSource={authedUsers?.flatMap(({ emails }) => emails)}
-          renderItem={email => <List.Item>{email}</List.Item>}
-          style={{ marginBottom: 16 }}
-        />
+          <Typography.Title level={2}>רשימת הרשאות</Typography.Title>
+          <Input.Search
+            placeholder="אימייל"
+            enterButton="הוספה"
+            onSearch={onAddingUser}
+            style={{ width: 300 }}
+          />
+          <List
+            dataSource={authedUsers?.flatMap(({ emails }) => emails)}
+            renderItem={email => <List.Item>{email}</List.Item>}
+            style={{ marginBottom: 16 }}
+          />
         </div>
       </ConfigProvider>
     );
