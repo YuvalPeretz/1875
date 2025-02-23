@@ -18,7 +18,7 @@ export default function usePeople() {
     }
   }
 
-  async function get(): Promise<Person[]> {
+  async function get() {
     try {
       const peopleCollection = collection(db, collectionName)
       const querySnapshot = await getDocs<any, any>(peopleCollection);

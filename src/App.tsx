@@ -12,7 +12,6 @@ import useEmail from "./jotai/useEmail";
 import useAuth from "./hooks/useAuth";
 import useAuthorization from "./server/useAuthorization";
 import { List } from "antd";
-import Papa from "papaparse";
 
 const { RangePicker } = DatePicker;
 
@@ -114,7 +113,7 @@ const LandingPage: React.FC = () => {
         ? recordValue.toString().toLowerCase().includes(value.toLowerCase())
         : '';
     },
-    onFilterDropdownOpenChange: (visible: boolean) => {
+    onOpenChange: (visible: boolean) => {
       if (visible) {
         setTimeout(() => searchInput?.select(), 100);
       }
@@ -380,25 +379,6 @@ const LandingPage: React.FC = () => {
   }
 
   useEffect(() => {
-    fetch("/test.csv")
-      .then(res => res.text())
-      .then(csvText => {
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            console.log("Parsed CSV:", results.data.map((d: any) => ({ ...d,
-              childrenAges: d.childrenAges.split(",").map((v: any) => v.trim()),
-              hobbies: d.hobbies.split(",").map((v: any) => v.trim()),
-              roleDefinition: d.roleDefinition.trim(),
-            })));
-          }
-        })
-      })
-  }, [])
-
-
-  useEffect(() => {
     if (email) {
       setLoginModal(false)
       validateEmail()
@@ -651,4 +631,3 @@ const LandingPage: React.FC = () => {
 }
 
 export default LandingPage
-
