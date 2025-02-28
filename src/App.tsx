@@ -1,8 +1,8 @@
 import type React from "react"
 import { useEffect, useState } from "react"
-import { Table, Button, Modal, Form, Input, DatePicker, Select, InputNumber, Typography, Flex, Space, InputRef, Row, Col, Result, Spin } from "antd"
+import { Table, Button, Modal, Form, Input, DatePicker, Select, InputNumber, Typography, Flex, Space, InputRef, Row, Col, Result, Spin, Layout, Card, Avatar } from "antd"
 import useResponsive from "./hooks/useResponsive"
-import { SearchOutlined, CalendarOutlined, DeleteOutlined, PlusOutlined, GoogleOutlined } from '@ant-design/icons';
+import { SearchOutlined, CalendarOutlined, DeleteOutlined, PlusOutlined, GoogleOutlined, UserOutlined, TeamOutlined, FormOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
 import { ConfigProvider } from "antd"
 import heIL from "antd/lib/locale/he_IL"
@@ -12,10 +12,64 @@ import useEmail from "./jotai/useEmail";
 import useAuth from "./hooks/useAuth";
 import useAuthorization from "./server/useAuthorization";
 import { List } from "antd";
+import { Content, Header } from "antd/es/layout/layout";
+import { Person } from "./utils/Types";
+import icon from "./assets/Icon.jpg"
+
+const { Title } = Typography
 
 const { RangePicker } = DatePicker;
 
 const { Option } = Select
+
+const styles = {
+  layout: {
+    minHeight: '100vh',
+    background: '#f5f5f5'
+  },
+  header: {
+    background: '#001529',
+    padding: '0 24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  headerTitle: {
+    color: '#fff',
+    margin: 0
+  },
+  content: {
+    padding: '24px',
+    margin: '24px',
+    background: '#fff',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+  },
+  card: {
+    marginBottom: '24px',
+    borderRadius: '8px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+  },
+  tableWrapper: {
+    background: '#fff',
+    padding: '24px',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+  },
+  button: {
+    borderRadius: '6px'
+  },
+  modal: {
+    borderRadius: '8px'
+  },
+  formSection: {
+    marginBottom: '32px',
+    padding: '24px',
+    background: '#fafafa',
+    borderRadius: '8px'
+  }
+};
+
 
 const LandingPage: React.FC = () => {
   const [isValid, setIsValid] = useState<null | boolean>(null)
@@ -29,7 +83,7 @@ const LandingPage: React.FC = () => {
   const { get, create } = usePeople()
   const { email } = useEmail()
   const { googleLogin, loading, logout } = useAuth()
-  const { get: getAuth, update } = useAuthorization()
+  const { get: getAuth, update, hasWritePermissions } = useAuthorization()
   const [authedUsers, setAuthedUsers] = useState<{ id: string, emails: string[] }[] | null>(null)
 
   const { breakpointCategory } = useResponsive()
@@ -158,6 +212,7 @@ const LandingPage: React.FC = () => {
           <Button
             onClick={() => {
               clearFilters && clearFilters();
+              confirm()
             }}
             size="small"
             style={{ width: 90 }}
@@ -172,9 +227,13 @@ const LandingPage: React.FC = () => {
     ),
     onFilter: (value: string[], record: any) => {
       if (!record[dataIndex]) return false;
-      // Assuming record[dataIndex] is an ISO string; compare only the date portion.
-      const recordDate = record[dataIndex].substring(0, 10);
-      return recordDate >= value[0] && recordDate <= value[1];
+      // Convert the record's date (assumed to be a Date object) to a timestamp.
+      const recordTime = record[dataIndex].getTime();
+      // Create timestamps from the selected date strings.
+      // Setting the start of day for the first date and the end of day for the second date.
+      const startTime = new Date(value[0]).setHours(0, 0, 0, 0);
+      const endTime = new Date(value[1]).setHours(23, 59, 59, 999);
+      return recordTime >= startTime && recordTime <= endTime;
     },
   });
 
@@ -184,80 +243,104 @@ const LandingPage: React.FC = () => {
       dataIndex: "timestamp",
       key: "timestamp",
       ...getColumnDateFilterProps("timestamp"),
-      render: (timestamp: Date) => timestamp.toLocaleDateString()
+      sorter: (a: Person, b: Person) => {
+        try {
+          return a.timestamp.getTime() - b.timestamp.getTime();
+        } catch (error) {
+          console.log(a.timestamp, b.timestamp instanceof Date);
+        }
+      },
+      render: (timestamp: Date) => timestamp.toLocaleDateString(),
     },
     {
       title: "שם פרטי",
       dataIndex: "firstName",
       key: "firstName",
       ...getColumnSearchProps("firstName"),
+      sorter: (a: Person, b: Person) => a.firstName.localeCompare(b.firstName),
     },
     {
       title: "שם משפחה",
       dataIndex: "lastName",
       key: "lastName",
       ...getColumnSearchProps("lastName"),
+      sorter: (a: Person, b: Person) => a.lastName.localeCompare(b.lastName),
     },
     {
       title: "פלוגה",
       dataIndex: "company",
       key: "company",
       ...getColumnSearchProps("company"),
+      sorter: (a: Person, b: Person) => Number(a.company) - Number(b.company),
     },
     {
       title: "כתובת מייל",
       dataIndex: "email",
       key: "email",
       ...getColumnSearchProps("email"),
+      sorter: (a: Person, b: Person) => a.email.localeCompare(b.email),
     },
     {
       title: "מספר טלפון",
       dataIndex: "phone",
       key: "phone",
       ...getColumnSearchProps("phone"),
+      sorter: (a: Person, b: Person) => a.phone.localeCompare(b.phone),
     },
     {
       title: "כתובת מגורים מלאה",
       dataIndex: "address",
       key: "address",
       ...getColumnSearchProps("address"),
+      sorter: (a: Person, b: Person) => a.address.localeCompare(b.address),
     },
     {
       title: "תאריך לידה",
       dataIndex: "birthDate",
       key: "birthDate",
       ...getColumnDateFilterProps("birthDate"),
-      render: (birthDate: Date) => birthDate.toLocaleDateString()
+      sorter: (a: Person, b: Person) =>
+        a.birthDate.getTime() - b.birthDate.getTime(),
+      render: (birthDate: Date) => birthDate.toLocaleDateString(),
     },
     {
       title: "באיזה תחום אתה עוסק?",
       dataIndex: "occupation",
       key: "occupation",
       ...getColumnSearchProps("occupation"),
+      sorter: (a: Person, b: Person) => a.occupation.localeCompare(b.occupation),
     },
     {
       title: "הגדרת תפקיד",
       dataIndex: "roleDefinition",
       key: "roleDefinition",
       ...getColumnSearchProps("roleDefinition"),
+      sorter: (a: Person, b: Person) => a.roleDefinition.localeCompare(b.roleDefinition),
     },
     {
       title: "מקום עבודה",
       dataIndex: "workplace",
       key: "workplace",
       ...getColumnSearchProps("workplace"),
+      sorter: (a: Person, b: Person) => a.workplace.localeCompare(b.workplace),
     },
     {
       title: "באיזה תחום הבת / בן זוג עוסק/ת?",
       dataIndex: "spouseOccupation",
       key: "spouseOccupation",
       ...getColumnSearchProps("spouseOccupation"),
+      sorter: (a: Person, b: Person) =>
+        (a.spouseOccupation || "").localeCompare(b.spouseOccupation || ""),
     },
     {
       title: "יש לך תחביבים / תחומי עניין?",
       dataIndex: "hobbies",
       key: "hobbies",
       ...getColumnSearchProps("hobbies"),
+      sorter: (a: Person, b: Person) =>
+        (a.hobbies ? a.hobbies.join(", ") : "").localeCompare(
+          b.hobbies ? b.hobbies.join(", ") : ""
+        ),
       render: (hobbies: string[]) => hobbies?.join(", "),
     },
     {
@@ -265,12 +348,17 @@ const LandingPage: React.FC = () => {
       dataIndex: "childrenCount",
       key: "childrenCount",
       ...getColumnSearchProps("childrenCount"),
+      sorter: (a: Person, b: Person) => a.childrenCount - b.childrenCount,
     },
     {
       title: "גילאי הילדים (אפשר לסמן כמה)",
       dataIndex: "childrenAges",
       key: "childrenAges",
       ...getColumnSearchProps("childrenAges"),
+      sorter: (a: Person, b: Person) =>
+        (a.childrenAges ? a.childrenAges.join(", ") : "").localeCompare(
+          b.childrenAges ? b.childrenAges.join(", ") : ""
+        ),
       render: (ages: string[]) => ages?.join(", "),
     },
     {
@@ -278,6 +366,7 @@ const LandingPage: React.FC = () => {
       dataIndex: "motivation",
       key: "motivation",
       ...getColumnSearchProps("motivation"),
+      sorter: (a: Person, b: Person) => a.motivation.localeCompare(b.motivation),
     },
     {
       title: "מה הציפיות שלך מהשירות בגדוד? מה חשוב לך להשיג / לחוות?",
@@ -285,15 +374,19 @@ const LandingPage: React.FC = () => {
       key: "expectations",
       ellipsis: true,
       ...getColumnSearchProps("expectations"),
+      sorter: (a: Person, b: Person) => a.expectations.localeCompare(b.expectations),
     },
     {
       title: "האם יש צרכים / אתגרים מיוחדים שכדאי שנכיר?",
       dataIndex: "specialNeeds",
       key: "specialNeeds",
       ...getColumnSearchProps("specialNeeds"),
+      sorter: (a: Person, b: Person) =>
+        (a.specialNeeds || "").localeCompare(b.specialNeeds || ""),
     },
     {
-      title: "האם תרצה להשתתף בפעילות פנאי עם חיילי הפלוגה מחוץ לימי המילואים?",
+      title:
+        "האם תרצה להשתתף בפעילות פנאי עם חיילי הפלוגה מחוץ לימי המילואים?",
       dataIndex: "participationInLeisure",
       key: "participationInLeisure",
       filters: [
@@ -303,6 +396,8 @@ const LandingPage: React.FC = () => {
       ],
       onFilter: (value: string, record: any) =>
         record.participationInLeisure === value,
+      sorter: (a: Person, b: Person) =>
+        a.participationInLeisure.localeCompare(b.participationInLeisure),
     },
     {
       title:
@@ -316,6 +411,8 @@ const LandingPage: React.FC = () => {
       ],
       onFilter: (value: string, record: any) =>
         record.leadershipParticipation === value,
+      sorter: (a: Person, b: Person) =>
+        a.leadershipParticipation.localeCompare(b.leadershipParticipation),
     },
     {
       title:
@@ -323,6 +420,7 @@ const LandingPage: React.FC = () => {
       dataIndex: "supportArea",
       key: "supportArea",
       ...getColumnSearchProps("supportArea"),
+      sorter: (a: Person, b: Person) => a.supportArea.localeCompare(b.supportArea),
     },
     {
       title:
@@ -330,6 +428,7 @@ const LandingPage: React.FC = () => {
       dataIndex: "availableAssets",
       key: "availableAssets",
       ...getColumnSearchProps("availableAssets"),
+      sorter: (a: Person, b: Person) => a.availableAssets.localeCompare(b.availableAssets),
     },
   ];
 
@@ -391,23 +490,53 @@ const LandingPage: React.FC = () => {
       get().then(people => setData(people))
   }, [isValid])
 
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (window.location.pathname === "/shrek") {
+        const hasPermission = await hasWritePermissions();
+        if (!hasPermission) {
+          window.location.replace("/");
+        }
+      }
+    };
+
+    checkPermissions();
+  }, [window.location.pathname])
+
+
   if (window.location.pathname === "/shrek") {
     return (
       <ConfigProvider direction="rtl" locale={heIL}>
-        <div style={{ padding: "20px", textAlign: "center" }}>
-          <Typography.Title level={2}>רשימת הרשאות</Typography.Title>
-          <Input.Search
-            placeholder="אימייל"
-            enterButton="הוספה"
-            onSearch={onAddingUser}
-            style={{ width: 300 }}
-          />
-          <List
-            dataSource={authedUsers?.flatMap(({ emails }) => emails)}
-            renderItem={email => <List.Item>{email}</List.Item>}
-            style={{ marginBottom: 16 }}
-          />
-        </div>
+        <Layout style={styles.layout}>
+          <Header style={styles.header}>
+            <Title level={3} style={styles.headerTitle}>ניהול הרשאות משתמשים</Title>
+          </Header>
+          <Content style={styles.content}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Input.Search
+                placeholder="הוסף אימייל חדש"
+                enterButton={<Button type="primary" icon={<PlusOutlined />}>הוספה</Button>}
+                onSearch={onAddingUser}
+                size="large"
+                style={{ maxWidth: 400, marginBottom: 24 }}
+              />
+              <Card title="משתמשים מורשים" style={styles.card}>
+                <List
+                  style={{ overflow: "auto" }}
+                  dataSource={authedUsers?.flatMap(({ emails }) => emails)}
+                  renderItem={email => (
+                    <List.Item>
+                      <List.Item.Meta
+                        avatar={<Avatar icon={<UserOutlined />} />}
+                        title={email}
+                      />
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            </Space>
+          </Content>
+        </Layout>
       </ConfigProvider>
     );
   }
@@ -425,19 +554,24 @@ const LandingPage: React.FC = () => {
                 extra={<Button type="primary" onClick={logout}>התנתק</Button>}
               />
               :
-              <div style={{ padding: "20px", maxWidth: "100%", overflowX: "auto" }}>
-                <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
-                  <Col>
-                    <Typography.Title style={{ margin: 0 }}>לכידות גדוד 1875</Typography.Title>
-                  </Col>
-                  <Col>
-                    <Button onClick={showModal} type="primary">
-                      הוסף
+              <Layout style={styles.layout}>
+                <Header style={styles.header}>
+                  <Title level={3} style={styles.headerTitle}>
+                    <Avatar src={icon} /> דף קשר גדוד 1875
+                  </Title>
+                  <Space>
+                    <Button
+                      type="primary"
+                      onClick={showModal}
+                      icon={<PlusOutlined />}
+                      size="large"
+                      style={styles.button}
+                    >
+                      הוסף חייל חדש
                     </Button>
-                  </Col>
-                </Row>
-
-                <Flex style={{ width: "100%", overflow: "auto" }}>
+                  </Space>
+                </Header>
+                <Content style={styles.content}>
                   <Table
                     loading={!data}
                     rowKey="key"                  // ensures each row is uniquely identified
@@ -447,168 +581,173 @@ const LandingPage: React.FC = () => {
                     pagination={isMobile ? { simple: true } : {}}
                     size="small"
                     scroll={{ x: "max-content" }} // enables horizontal scrolling if needed
-                  />      </Flex>
+                  />
+                </Content>
                 <Modal
-                  title="הוסף שורה חדשה"
+                  title={<><FormOutlined /> הוספת חייל חדש</>}
                   open={isModalVisible}
                   onOk={handleOk}
                   onCancel={handleCancel}
                   width={isMobile ? "100%" : "80%"}
-                  style={{ top: isMobile ? 0 : 20 }}
+                  style={{ ...styles.modal, top: isMobile ? 0 : 20 }}
                   centered            // centers the modal vertically
                   destroyOnClose      // clears modal content on close for better performance
                 >
                   <Form form={form} layout="vertical">
-                    <Row gutter={16}>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="firstName" label="שם פרטי" rules={[{ required: true, message: "נא להזין שם פרטי" }]}>
-                          <Input />
+                    <Card title="פרטים אישיים" style={styles.formSection}>
+                      <Row gutter={16}>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="firstName" label="שם פרטי" rules={[{ required: true, message: "נא להזין שם פרטי" }]}>
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="lastName" label="שם משפחה" rules={[{ required: true, message: "נא להזין שם משפחה" }]}>
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="company" label="פלוגה" rules={[{ required: true, message: "נא להזין פלוגה" }]}>
+                            <InputNumber style={{ width: "100%" }} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="email" label="כתובת מייל" rules={[{ required: true, type: "email", message: "נא להזין כתובת מייל תקינה" }]}>
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="phone" label="מספר טלפון" rules={[{ required: true, message: "נא להזין מספר טלפון" }]}>
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="address" label="כתובת מגורים מלאה" rules={[{ required: true, message: "נא להזין כתובת מגורים" }]}>
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="birthDate" label="תאריך לידה" rules={[{ required: true, message: "נא לבחור תאריך לידה" }]}>
+                            <DatePicker style={{ width: "100%" }} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="occupation" label="באיזה תחום אתה עוסק?" rules={[{ required: true, message: "נא להזין תחום עיסוק" }]}>
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="roleDefinition" label="הגדרת תפקיד" rules={[{ required: true, message: "נא להזין הגדרת תפקיד" }]}>
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="workplace" label="מקום עבודה" rules={[{ required: true, message: "נא להזין מקום עבודה" }]}>
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="spouseOccupation" label="באיזה תחום הבת / בן זוג עוסק/ת?">
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Form.Item name="hobbies" label="יש לך תחביבים / תחומי עניין?">
+                            <Select mode="tags" style={{ width: "100%" }} placeholder="בחר או הזן תחביבים">
+                              <Option value="ספורט">ספורט</Option>
+                              <Option value="קריאה">קריאה</Option>
+                              <Option value="מוזיקה">מוזיקה</Option>
+                              <Option value="טיולים">טיולים</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Form.Item label="גילאי הילדים (ניתן להוסיף מספר שדות):">
+                          <Form.List name="children">
+                            {(fields, { add, remove }) => (
+                              <>
+                                {fields.map((field, index) => (
+                                  <Flex vertical key={field.key}>
+                                    <Typography.Text ellipsis>{`גיל ילד ${index + 1}`}</Typography.Text>
+                                    <Space style={{ paddingBottom: 10 }}>
+                                      <Form.Item
+                                        noStyle
+                                        {...field}
+                                        rules={[{ required: true, message: 'נא לבחור טווח גיל' }]}
+                                      >
+                                        <Select placeholder="בחר טווח גיל" style={{ width: "100%" }}>
+                                          <Option value="0-2">0-2</Option>
+                                          <Option value="3-5">3-5</Option>
+                                          <Option value="6-12">6-12</Option>
+                                          <Option value="13-18">13-18</Option>
+                                          <Option value="18+">18+</Option>
+                                        </Select>
+                                      </Form.Item>
+                                      <Button onClick={() => remove(field.name)} danger icon={<DeleteOutlined />}>
+                                        הסר
+                                      </Button>
+                                    </Space>
+                                  </Flex>
+                                ))}
+                                <Form.Item>
+                                  <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                    הוסף ילד
+                                  </Button>
+                                </Form.Item>
+                              </>
+                            )}
+                          </Form.List>
                         </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="lastName" label="שם משפחה" rules={[{ required: true, message: "נא להזין שם משפחה" }]}>
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="company" label="פלוגה" rules={[{ required: true, message: "נא להזין פלוגה" }]}>
-                          <InputNumber style={{ width: "100%" }} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="email" label="כתובת מייל" rules={[{ required: true, type: "email", message: "נא להזין כתובת מייל תקינה" }]}>
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="phone" label="מספר טלפון" rules={[{ required: true, message: "נא להזין מספר טלפון" }]}>
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="address" label="כתובת מגורים מלאה" rules={[{ required: true, message: "נא להזין כתובת מגורים" }]}>
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="birthDate" label="תאריך לידה" rules={[{ required: true, message: "נא לבחור תאריך לידה" }]}>
-                          <DatePicker style={{ width: "100%" }} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="occupation" label="באיזה תחום אתה עוסק?" rules={[{ required: true, message: "נא להזין תחום עיסוק" }]}>
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="roleDefinition" label="הגדרת תפקיד" rules={[{ required: true, message: "נא להזין הגדרת תפקיד" }]}>
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="workplace" label="מקום עבודה" rules={[{ required: true, message: "נא להזין מקום עבודה" }]}>
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="spouseOccupation" label="באיזה תחום הבת / בן זוג עוסק/ת?">
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Form.Item name="hobbies" label="יש לך תחביבים / תחומי עניין?">
-                          <Select mode="tags" style={{ width: "100%" }} placeholder="בחר או הזן תחביבים">
-                            <Option value="ספורט">ספורט</Option>
-                            <Option value="קריאה">קריאה</Option>
-                            <Option value="מוזיקה">מוזיקה</Option>
-                            <Option value="טיולים">טיולים</Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                      <Form.Item label="גילאי הילדים (ניתן להוסיף מספר שדות):">
-                        <Form.List name="children">
-                          {(fields, { add, remove }) => (
-                            <>
-                              {fields.map((field, index) => (
-                                <Flex vertical key={field.key}>
-                                  <Typography.Text ellipsis>{`גיל ילד ${index + 1}`}</Typography.Text>
-                                  <Space style={{ paddingBottom: 10 }}>
-                                    <Form.Item
-                                      noStyle
-                                      {...field}
-                                      rules={[{ required: true, message: 'נא לבחור טווח גיל' }]}
-                                    >
-                                      <Select placeholder="בחר טווח גיל" style={{ width: "100%" }}>
-                                        <Option value="0-2">0-2</Option>
-                                        <Option value="3-5">3-5</Option>
-                                        <Option value="6-12">6-12</Option>
-                                        <Option value="13-18">13-18</Option>
-                                        <Option value="18+">18+</Option>
-                                      </Select>
-                                    </Form.Item>
-                                    <Button onClick={() => remove(field.name)} danger icon={<DeleteOutlined />}>
-                                      הסר
-                                    </Button>
-                                  </Space>
-                                </Flex>
-                              ))}
-                              <Form.Item>
-                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                                  הוסף ילד
-                                </Button>
-                              </Form.Item>
-                            </>
-                          )}
-                        </Form.List>
-                      </Form.Item>
-                      <Col xs={24}>
-                        <Form.Item name="motivation" label="נשמח לשמוע מה הניע אותך להתנדב חזרה מפטור" rules={[{ required: true, message: "נא להזין מוטיבציה" }]}>
-                          <Input.TextArea />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24}>
-                        <Form.Item name="expectations" label="מה הציפיות שלך מהשירות בגדוד? מה חשוב לך להשיג / לחוות?" rules={[{ required: true, message: "נא להזין ציפיות" }]}>
-                          <Input.TextArea />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24}>
-                        <Form.Item name="specialNeeds" label="האם יש צרכים / אתגרים מיוחדים שכדאי שנכיר?">
-                          <Input.TextArea />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12}>
-                        <Form.Item name="participationInLeisure" label="האם תרצה להשתתף בפעילות פנאי עם חיילי הפלוגה מחוץ לימי המילואים?">
-                          <Select>
-                            <Option value="כן">כן</Option>
-                            <Option value="לא">לא</Option>
-                            <Option value="אולי">אולי</Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} sm={12}>
-                        <Form.Item name="leadershipParticipation" label="תרצה לקחת חלק פעיל בהובלת הלכידות וחיזוק הקשרים הבין אישיים בפלוגה שלך?">
-                          <Select>
-                            <Option value="כן">כן</Option>
-                            <Option value="לא">לא</Option>
-                            <Option value="אולי">אולי</Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24}>
-                        <Form.Item name="supportArea" label="האם יש תחום בו תרצה לסייע לחיילי הפלוגה / להוביל פעילות / לתרום?">
-                          <Input.TextArea />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24}>
-                        <Form.Item name="availableAssets" label="האם יש נכס ברשותך שיכול לסייע לערבי פלוגה / גדוד (בית, אולם, בריכה...)">
-                          <Input.TextArea />
-                        </Form.Item>
-                      </Col>
-                    </Row>
+                        <Col xs={24}>
+                          <Form.Item name="motivation" label="נשמח לשמוע מה הניע אותך להתנדב חזרה מפטור" rules={[{ required: true, message: "נא להזין מוטיבציה" }]}>
+                            <Input.TextArea />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24}>
+                          <Form.Item name="expectations" label="מה הציפיות שלך מהשירות בגדוד? מה חשוב לך להשיג / לחוות?" rules={[{ required: true, message: "נא להזין ציפיות" }]}>
+                            <Input.TextArea />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24}>
+                          <Form.Item name="specialNeeds" label="האם יש צרכים / אתגרים מיוחדים שכדאי שנכיר?">
+                            <Input.TextArea />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12}>
+                          <Form.Item name="participationInLeisure" label="האם תרצה להשתתף בפעילות פנאי עם חיילי הפלוגה מחוץ לימי המילואים?">
+                            <Select>
+                              <Option value="כן">כן</Option>
+                              <Option value="לא">לא</Option>
+                              <Option value="אולי">אולי</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12}>
+                          <Form.Item name="leadershipParticipation" label="תרצה לקחת חלק פעיל בהובלת הלכידות וחיזוק הקשרים הבין אישיים בפלוגה שלך?">
+                            <Select>
+                              <Option value="כן">כן</Option>
+                              <Option value="לא">לא</Option>
+                              <Option value="אולי">אולי</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24}>
+                          <Form.Item name="supportArea" label="האם יש תחום בו תרצה לסייע לחיילי הפלוגה / להוביל פעילות / לתרום?">
+                            <Input.TextArea />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24}>
+                          <Form.Item name="availableAssets" label="האם יש נכס ברשותך שיכול לסייע לערבי פלוגה / גדוד (בית, אולם, בריכה...)">
+                            <Input.TextArea />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </Card>
                   </Form>
                 </Modal>
-              </div> : null
+              </Layout> : null
           }
+
+
           <Modal
             closable={false}
             title="התחברות למערכת"

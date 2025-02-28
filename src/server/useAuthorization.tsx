@@ -1,15 +1,31 @@
-import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import useDB from "../hooks/useDB";
+import useEmail from "../jotai/useEmail";
 
 const collectionName = "authorization";
 
 export default function useAuthorization() {
   const db = useDB();
+  const { email } = useEmail()
+
+  async function hasWritePermissions() {
+    if (!email) return false;
+
+    const testDocRef = doc(db, collectionName, "test-write-permission");
+    try {
+      await setDoc(testDocRef, { test: true });
+      await deleteDoc(testDocRef);
+      return true;
+    } catch (error: any) {
+      if (error.code === "permission-denied") return false;
+      return false;
+    }
+  }
 
   async function get(): Promise<{ id: string, emails: string[] }[] | null> {
     try {
       const authCollection = collection(db, collectionName);
-      return (await getDocs<any, any>(authCollection)).docs.map(doc => ({id: doc.id, ...doc.data()}))
+      return (await getDocs<any, any>(authCollection)).docs.map(doc => ({ id: doc.id, ...doc.data() }))
     } catch (error) {
       return null
     }
@@ -30,5 +46,5 @@ export default function useAuthorization() {
     }
   }
 
-  return { update, get }
+  return { update, get, hasWritePermissions }
 }

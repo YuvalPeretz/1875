@@ -1,14 +1,12 @@
-import { Timestamp } from "firebase/firestore";
-
 export type Person = {
-  timestamp: Timestamp; // Assuming timestamp is a date string
+  timestamp: Date; // Assuming timestamp is a date string
   firstName: string;
   lastName: string;
   company: string;
   email: string;
   phone: string;
   address: string;
-  birthDate: Timestamp; // Assuming birthDate is a date string
+  birthDate: Date; // Assuming birthDate is a date string
   occupation: string;
   roleDefinition: string;
   workplace: string;
