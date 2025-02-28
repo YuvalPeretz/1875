@@ -81,9 +81,9 @@ export default function useAuth() {
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (currentUser) => {
       setLoading(true);
       if (currentUser && !email) {
-        const { email } = currentUser;
+        const { email: currentEmail } = currentUser;
 
-        if (email) setEmail(email);
+        if (currentEmail) setEmail(currentEmail);
       }
       setLoading(false);
     });

@@ -1,9 +1,8 @@
 import type React from "react"
 import { useEffect, useState } from "react"
-import { Table, Button, Modal, Form, Input, DatePicker, Select, InputNumber, Typography, Flex, Space, InputRef, Row, Col, Result, Spin, Layout, Card, Avatar } from "antd"
+import { Button, Modal, Form, Input, DatePicker, Select, InputNumber, Typography, Flex, Space, Row, Col, Result, Spin, Layout, Card, Avatar, Popconfirm } from "antd"
 import useResponsive from "./hooks/useResponsive"
-import { SearchOutlined, CalendarOutlined, DeleteOutlined, PlusOutlined, GoogleOutlined, UserOutlined, TeamOutlined, FormOutlined } from '@ant-design/icons';
-import Highlighter from 'react-highlight-words';
+import { DeleteOutlined, PlusOutlined, GoogleOutlined, UserOutlined, FormOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import { ConfigProvider } from "antd"
 import heIL from "antd/lib/locale/he_IL"
 import usePeople from "./server/usePeople";
@@ -17,8 +16,6 @@ import { Person } from "./utils/Types";
 import icon from "./assets/Icon.jpg"
 
 const { Title } = Typography
-
-const { RangePicker } = DatePicker;
 
 const { Option } = Select
 
@@ -70,13 +67,35 @@ const styles = {
   }
 };
 
+const translations = {
+  "timestamp": "חותמת זמן",
+  "firstName": "שם פרטי",
+  "lastName": "שם משפחה",
+  "company": "פלוגה",
+  "email": "כתובת מייל",
+  "phone": "מספר טלפון",
+  "address": "כתובת מגורים מלאה",
+  "birthDate": "תאריך לידה",
+  "occupation": "באיזה תחום אתה עוסק?",
+  "roleDefinition": "הגדרת תפקיד",
+  "workplace": "מקום עבודה",
+  "spouseOccupation": "באיזה תחום הבת / בן זוג עוסק/ת?",
+  "hobbies": "יש לך תחביבים / תחומי עניין?",
+  "childrenCount": "האם יש ילדים? אם כן, כמה?",
+  "childrenAges": "גילאי הילדים (אפשר לסמן כמה)",
+  "motivation": "נשמח לשמוע מה הניע אותך להתנדב חזרה מפטור",
+  "expectations": "מה הציפיות שלך מהשירות בגדוד? מה חשוב לך להשיג / לחוות?",
+  "specialNeeds": "האם יש צרכים / אתגרים מיוחדים שכדאי שנכיר?",
+  "participationInLeisure": "האם תרצה להשתתף בפעילות פנאי עם חיילי הפלוגה מחוץ לימי המילואים?",
+  "leadershipParticipation": "תרצה לקחת חלק פעיל בהובלת הלכידות וחיזוק הקשרים הבין אישיים בפלוגה שלך?",
+  "supportArea": "האם יש תחום בו תרצה לסייע לחיילי הפלוגה / להוביל פעילות / לתרום?",
+  "availableAssets": "האם יש נכס ברשותך שיכול לסייע לערבי פלוגה / גדוד (בית, אולם, בריכה...)"
+};
 
 const LandingPage: React.FC = () => {
   const [isValid, setIsValid] = useState<null | boolean>(null)
   const [loginModal, setLoginModal] = useState(false)
   const [searchText, setSearchText] = useState('');
-  const [searchedColumn, setSearchedColumn] = useState('');
-  let searchInput: InputRef | null = null;
   const [data, setData] = useState<any[]>()
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
@@ -85,352 +104,10 @@ const LandingPage: React.FC = () => {
   const { googleLogin, loading, logout } = useAuth()
   const { get: getAuth, update, hasWritePermissions } = useAuthorization()
   const [authedUsers, setAuthedUsers] = useState<{ id: string, emails: string[] }[] | null>(null)
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
   const { breakpointCategory } = useResponsive()
   const isMobile = breakpointCategory === "smallMobile" || breakpointCategory === "mobile"
-
-  const getColumnSearchProps = (dataIndex: string) => ({
-    filterDropdown: ({
-      setSelectedKeys,
-      selectedKeys,
-      confirm,
-      clearFilters,
-      close,
-    }: any) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={(node) => {
-            searchInput = node;
-          }}
-          placeholder={`Search ${dataIndex}`}
-          value={selectedKeys[0]}
-          onChange={(e) =>
-            setSelectedKeys(e.target.value ? [e.target.value] : [])
-          }
-          onPressEnter={() => {
-            confirm();
-            setSearchText(selectedKeys[0]);
-            setSearchedColumn(dataIndex);
-          }}
-          style={{ marginBottom: 8, display: 'block' }}
-        />
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => {
-              confirm();
-              setSearchText(selectedKeys[0]);
-              setSearchedColumn(dataIndex);
-            }}
-            icon={<SearchOutlined />}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Search
-          </Button>
-          <Button
-            onClick={() => {
-              clearFilters && clearFilters();
-              setSearchText('');
-            }}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Reset
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              confirm({ closeDropdown: false });
-              setSearchText(selectedKeys[0]);
-              setSearchedColumn(dataIndex);
-            }}
-          >
-            Filter
-          </Button>
-          <Button type="link" size="small" onClick={() => close()}>
-            close
-          </Button>
-        </Space>
-      </div>
-    ),
-    filterIcon: (filtered: boolean) => (
-      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
-    ),
-    onFilter: (value: string, record: any) => {
-      const recordValue = record[dataIndex];
-      if (Array.isArray(recordValue)) {
-        return recordValue.join(', ').toLowerCase().includes(value.toLowerCase());
-      }
-      return recordValue
-        ? recordValue.toString().toLowerCase().includes(value.toLowerCase())
-        : '';
-    },
-    onOpenChange: (visible: boolean) => {
-      if (visible) {
-        setTimeout(() => searchInput?.select(), 100);
-      }
-    },
-    render: (text: any) =>
-      searchedColumn === dataIndex ? (
-        <Highlighter
-          highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-          searchWords={[searchText]}
-          autoEscape
-          textToHighlight={text ? text.toString() : ''}
-        />
-      ) : (
-        text
-      ),
-  });
-
-  const getColumnDateFilterProps = (dataIndex: string) => ({
-    filterDropdown: ({
-      setSelectedKeys,
-      confirm,
-      clearFilters,
-    }: any) => (
-      <div style={{ padding: 8 }}>
-        <RangePicker
-          onChange={(_, dateStrings) => {
-            setSelectedKeys(
-              dateStrings && dateStrings[0] && dateStrings[1] ? [dateStrings] : []
-            );
-          }}
-          style={{ marginBottom: 8, display: 'block' }}
-        />
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => confirm()}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Filter
-          </Button>
-          <Button
-            onClick={() => {
-              clearFilters && clearFilters();
-              confirm()
-            }}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Reset
-          </Button>
-        </Space>
-      </div>
-    ),
-    filterIcon: (filtered: boolean) => (
-      <CalendarOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
-    ),
-    onFilter: (value: string[], record: any) => {
-      if (!record[dataIndex]) return false;
-      // Convert the record's date (assumed to be a Date object) to a timestamp.
-      const recordTime = record[dataIndex].getTime();
-      // Create timestamps from the selected date strings.
-      // Setting the start of day for the first date and the end of day for the second date.
-      const startTime = new Date(value[0]).setHours(0, 0, 0, 0);
-      const endTime = new Date(value[1]).setHours(23, 59, 59, 999);
-      return recordTime >= startTime && recordTime <= endTime;
-    },
-  });
-
-  const columns = [
-    {
-      title: "חותמת זמן",
-      dataIndex: "timestamp",
-      key: "timestamp",
-      ...getColumnDateFilterProps("timestamp"),
-      sorter: (a: Person, b: Person) => {
-        try {
-          return a.timestamp.getTime() - b.timestamp.getTime();
-        } catch (error) {
-          console.log(a.timestamp, b.timestamp instanceof Date);
-        }
-      },
-      render: (timestamp: Date) => timestamp.toLocaleDateString(),
-    },
-    {
-      title: "שם פרטי",
-      dataIndex: "firstName",
-      key: "firstName",
-      ...getColumnSearchProps("firstName"),
-      sorter: (a: Person, b: Person) => a.firstName.localeCompare(b.firstName),
-    },
-    {
-      title: "שם משפחה",
-      dataIndex: "lastName",
-      key: "lastName",
-      ...getColumnSearchProps("lastName"),
-      sorter: (a: Person, b: Person) => a.lastName.localeCompare(b.lastName),
-    },
-    {
-      title: "פלוגה",
-      dataIndex: "company",
-      key: "company",
-      ...getColumnSearchProps("company"),
-      sorter: (a: Person, b: Person) => Number(a.company) - Number(b.company),
-    },
-    {
-      title: "כתובת מייל",
-      dataIndex: "email",
-      key: "email",
-      ...getColumnSearchProps("email"),
-      sorter: (a: Person, b: Person) => a.email.localeCompare(b.email),
-    },
-    {
-      title: "מספר טלפון",
-      dataIndex: "phone",
-      key: "phone",
-      ...getColumnSearchProps("phone"),
-      sorter: (a: Person, b: Person) => a.phone.localeCompare(b.phone),
-    },
-    {
-      title: "כתובת מגורים מלאה",
-      dataIndex: "address",
-      key: "address",
-      ...getColumnSearchProps("address"),
-      sorter: (a: Person, b: Person) => a.address.localeCompare(b.address),
-    },
-    {
-      title: "תאריך לידה",
-      dataIndex: "birthDate",
-      key: "birthDate",
-      ...getColumnDateFilterProps("birthDate"),
-      sorter: (a: Person, b: Person) =>
-        a.birthDate.getTime() - b.birthDate.getTime(),
-      render: (birthDate: Date) => birthDate.toLocaleDateString(),
-    },
-    {
-      title: "באיזה תחום אתה עוסק?",
-      dataIndex: "occupation",
-      key: "occupation",
-      ...getColumnSearchProps("occupation"),
-      sorter: (a: Person, b: Person) => a.occupation.localeCompare(b.occupation),
-    },
-    {
-      title: "הגדרת תפקיד",
-      dataIndex: "roleDefinition",
-      key: "roleDefinition",
-      ...getColumnSearchProps("roleDefinition"),
-      sorter: (a: Person, b: Person) => a.roleDefinition.localeCompare(b.roleDefinition),
-    },
-    {
-      title: "מקום עבודה",
-      dataIndex: "workplace",
-      key: "workplace",
-      ...getColumnSearchProps("workplace"),
-      sorter: (a: Person, b: Person) => a.workplace.localeCompare(b.workplace),
-    },
-    {
-      title: "באיזה תחום הבת / בן זוג עוסק/ת?",
-      dataIndex: "spouseOccupation",
-      key: "spouseOccupation",
-      ...getColumnSearchProps("spouseOccupation"),
-      sorter: (a: Person, b: Person) =>
-        (a.spouseOccupation || "").localeCompare(b.spouseOccupation || ""),
-    },
-    {
-      title: "יש לך תחביבים / תחומי עניין?",
-      dataIndex: "hobbies",
-      key: "hobbies",
-      ...getColumnSearchProps("hobbies"),
-      sorter: (a: Person, b: Person) =>
-        (a.hobbies ? a.hobbies.join(", ") : "").localeCompare(
-          b.hobbies ? b.hobbies.join(", ") : ""
-        ),
-      render: (hobbies: string[]) => hobbies?.join(", "),
-    },
-    {
-      title: "האם יש ילדים? אם כן, כמה?",
-      dataIndex: "childrenCount",
-      key: "childrenCount",
-      ...getColumnSearchProps("childrenCount"),
-      sorter: (a: Person, b: Person) => a.childrenCount - b.childrenCount,
-    },
-    {
-      title: "גילאי הילדים (אפשר לסמן כמה)",
-      dataIndex: "childrenAges",
-      key: "childrenAges",
-      ...getColumnSearchProps("childrenAges"),
-      sorter: (a: Person, b: Person) =>
-        (a.childrenAges ? a.childrenAges.join(", ") : "").localeCompare(
-          b.childrenAges ? b.childrenAges.join(", ") : ""
-        ),
-      render: (ages: string[]) => ages?.join(", "),
-    },
-    {
-      title: "נשמח לשמוע מה הניע אותך להתנדב חזרה מפטור",
-      dataIndex: "motivation",
-      key: "motivation",
-      ...getColumnSearchProps("motivation"),
-      sorter: (a: Person, b: Person) => a.motivation.localeCompare(b.motivation),
-    },
-    {
-      title: "מה הציפיות שלך מהשירות בגדוד? מה חשוב לך להשיג / לחוות?",
-      dataIndex: "expectations",
-      key: "expectations",
-      ellipsis: true,
-      ...getColumnSearchProps("expectations"),
-      sorter: (a: Person, b: Person) => a.expectations.localeCompare(b.expectations),
-    },
-    {
-      title: "האם יש צרכים / אתגרים מיוחדים שכדאי שנכיר?",
-      dataIndex: "specialNeeds",
-      key: "specialNeeds",
-      ...getColumnSearchProps("specialNeeds"),
-      sorter: (a: Person, b: Person) =>
-        (a.specialNeeds || "").localeCompare(b.specialNeeds || ""),
-    },
-    {
-      title:
-        "האם תרצה להשתתף בפעילות פנאי עם חיילי הפלוגה מחוץ לימי המילואים?",
-      dataIndex: "participationInLeisure",
-      key: "participationInLeisure",
-      filters: [
-        { text: "כן", value: "כן" },
-        { text: "לא", value: "לא" },
-        { text: "אולי", value: "אולי" },
-      ],
-      onFilter: (value: string, record: any) =>
-        record.participationInLeisure === value,
-      sorter: (a: Person, b: Person) =>
-        a.participationInLeisure.localeCompare(b.participationInLeisure),
-    },
-    {
-      title:
-        "תרצה לקחת חלק פעיל בהובלת הלכידות וחיזוק הקשרים הבין אישיים בפלוגה שלך?",
-      dataIndex: "leadershipParticipation",
-      key: "leadershipParticipation",
-      filters: [
-        { text: "כן", value: "כן" },
-        { text: "לא", value: "לא" },
-        { text: "אולי", value: "אולי" },
-      ],
-      onFilter: (value: string, record: any) =>
-        record.leadershipParticipation === value,
-      sorter: (a: Person, b: Person) =>
-        a.leadershipParticipation.localeCompare(b.leadershipParticipation),
-    },
-    {
-      title:
-        "האם יש תחום בו תרצה לסייע לחיילי הפלוגה / להוביל פעילות / לתרום?",
-      dataIndex: "supportArea",
-      key: "supportArea",
-      ...getColumnSearchProps("supportArea"),
-      sorter: (a: Person, b: Person) => a.supportArea.localeCompare(b.supportArea),
-    },
-    {
-      title:
-        "האם יש נכס ברשותך שיכול לסייע לערבי פלוגה / גדוד (בית, אולם, בריכה...)",
-      dataIndex: "availableAssets",
-      key: "availableAssets",
-      ...getColumnSearchProps("availableAssets"),
-      sorter: (a: Person, b: Person) => a.availableAssets.localeCompare(b.availableAssets),
-    },
-  ];
 
   const showModal = () => {
     setIsModalVisible(true)
@@ -477,6 +154,61 @@ const LandingPage: React.FC = () => {
     }
   }
 
+  async function onRemoveUser(value: string) {
+    if (value && authedUsers?.flatMap(({ emails }) => emails).includes(value)) {
+      const emails = authedUsers?.flatMap(({ emails }) => emails) || [];
+      const newList = emails.filter(email => email !== value);
+      await update(newList);
+      await validateEmail();
+    }
+  }
+
+  function getFilteredValues(person: Person) {
+    if (!searchText) return null;
+
+    const filteredEntries = Object.entries(person)
+      .filter(([key]) => !['id', 'timestamp'].includes(key))
+      .map(([key, value]) => {
+        const label = translations[key as keyof typeof translations];
+        //@ts-ignore
+        let displayValue: React.ReactNode = value;
+
+        // Handle special value formatting
+        if (value instanceof Timestamp) {
+          displayValue = new Date(value.toDate()).toLocaleDateString('he-IL');
+        } else if (value instanceof Date) {
+          displayValue = value.toLocaleDateString('he-IL');
+        } else if (Array.isArray(value)) {
+          displayValue = value.join(', ');
+        } else if (typeof value === 'object' && value !== null) {
+          displayValue = JSON.stringify(value);
+        }
+
+        return { label, value: displayValue };
+      })
+      .filter(({ label, value }) =>
+        value?.toString().toLowerCase().includes(searchText.toLowerCase()) ||
+        label?.toLowerCase().includes(searchText.toLowerCase())
+      );
+
+    if (filteredEntries.length === 0) return null;
+
+    return (
+      <List
+        size="small"
+        dataSource={filteredEntries}
+        renderItem={({ label, value }) => (
+          <List.Item style={{ padding: 0, borderBlockEnd: 0 }}>
+            <List.Item.Meta
+              title={<Typography.Text strong>{label}</Typography.Text>}
+              description={<Typography.Text type="secondary">{value}</Typography.Text>}
+            />
+          </List.Item>
+        )}
+      />
+    );
+  }
+
   useEffect(() => {
     if (email) {
       setLoginModal(false)
@@ -492,7 +224,7 @@ const LandingPage: React.FC = () => {
 
   useEffect(() => {
     const checkPermissions = async () => {
-      if (window.location.pathname === "/shrek") {
+      if (window.location.pathname === "/shrek" && email) {
         const hasPermission = await hasWritePermissions();
         if (!hasPermission) {
           window.location.replace("/");
@@ -525,7 +257,9 @@ const LandingPage: React.FC = () => {
                   style={{ overflow: "auto" }}
                   dataSource={authedUsers?.flatMap(({ emails }) => emails)}
                   renderItem={email => (
-                    <List.Item>
+                    <List.Item extra={<Popconfirm title="למחוק מייל?" onConfirm={() => onRemoveUser(email)}>
+                      <Button size="small" danger type="primary" icon={<DeleteOutlined />} />
+                    </Popconfirm>}>
                       <List.Item.Meta
                         avatar={<Avatar icon={<UserOutlined />} />}
                         title={email}
@@ -559,29 +293,38 @@ const LandingPage: React.FC = () => {
                   <Title level={3} style={styles.headerTitle}>
                     <Avatar src={icon} /> דף קשר גדוד 1875
                   </Title>
-                  <Space>
-                    <Button
-                      type="primary"
-                      onClick={showModal}
-                      icon={<PlusOutlined />}
-                      size="large"
-                      style={styles.button}
-                    >
-                      הוסף חייל חדש
-                    </Button>
-                  </Space>
                 </Header>
                 <Content style={styles.content}>
-                  <Table
-                    loading={!data}
-                    rowKey="key"                  // ensures each row is uniquely identified
-                    bordered                      // adds borders for clarity
-                    columns={columns as any}
-                    dataSource={data || []}
-                    pagination={isMobile ? { simple: true } : {}}
-                    size="small"
-                    scroll={{ x: "max-content" }} // enables horizontal scrolling if needed
-                  />
+                  <Flex vertical gap={10}>
+                    <Space>
+                      <Input style={{ maxWidth: 300 }} onChange={e => setSearchText(e.target.value)} allowClear placeholder="חפש" prefix={<SearchOutlined />} />
+                      <Button
+                        type="primary"
+                        onClick={showModal}
+                        icon={<PlusOutlined />}
+                        style={styles.button}
+                      >
+                        הוסף חייל חדש
+                      </Button>
+                    </Space>
+                    <Space wrap>
+                      {data?.filter(person => JSON.stringify(Object.values(person)).toLocaleLowerCase().includes(searchText.toLocaleLowerCase()))?.map((person: Person) => <Card
+                        title={`${person.firstName} ${person.lastName}`}
+                        actions={[<EyeOutlined
+                          key="view"
+                          onClick={() => setSelectedPerson(person)}
+                        />]}
+                        style={{ width: isMobile ? '100%' : 300 }}
+                      >
+                        <Flex vertical gap={8}>
+                          <Typography.Text strong type="secondary">{person.company}</Typography.Text>
+                          <Typography.Link href={`mailto:${person.email}`}>{person.email}</Typography.Link>
+                          <Typography.Text>{person.phone}</Typography.Text>
+                          {getFilteredValues(person)}
+                        </Flex>
+                      </Card>)}
+                    </Space>
+                  </Flex>
                 </Content>
                 <Modal
                   title={<><FormOutlined /> הוספת חייל חדש</>}
@@ -761,6 +504,46 @@ const LandingPage: React.FC = () => {
                 <Typography.Text>התחברות עם גוגל</Typography.Text>
               </Button>
             </Flex>
+          </Modal>
+
+          <Modal
+            title={`פרטים מלאים - ${selectedPerson?.firstName} ${selectedPerson?.lastName}`}
+            open={!!selectedPerson}
+            onCancel={() => setSelectedPerson(null)}
+            footer={null}
+            width={800}
+          >
+            {selectedPerson && (
+              <List
+                itemLayout="horizontal"
+                dataSource={Object.entries(selectedPerson).filter(([key]) => !['id', 'timestamp'].includes(key))}
+                renderItem={([key, value]) => {
+                  const label = translations[key as keyof typeof translations] || key;
+                  //@ts-ignore
+                  let displayValue: React.ReactNode = value;
+
+                  if (value instanceof Timestamp) {
+                    displayValue = new Date(value.toDate()).toLocaleDateString('he-IL');
+                  } else if (value instanceof Date) {
+                    displayValue = value.toLocaleDateString('he-IL');
+                  } else if (Array.isArray(value)) {
+                    displayValue = value.join(', ');
+                  } else if (typeof value === 'object' && value !== null) {
+                    displayValue = JSON.stringify(value);
+                  }
+
+                  return (
+                    <List.Item>
+                      <List.Item.Meta
+                        title={<Typography.Text strong>{label}</Typography.Text>}
+                        description={<Typography.Text>{displayValue || 'לא צוין'}</Typography.Text>}
+                        style={{ width: '100%' }}
+                      />
+                    </List.Item>
+                  );
+                }}
+              />
+            )}
           </Modal>
         </>
       }

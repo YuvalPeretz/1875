@@ -35,7 +35,7 @@ export default function useAuthorization() {
     try {
       const authList = await get();
       if (authList) {
-        const updatedEmails = Array.from(new Set([...emails, ...authList[0].emails]))
+        const updatedEmails = Array.from(new Set(emails))
         const authDocRef = doc(db, collectionName, authList[0].id)
         await updateDoc(authDocRef, {
           emails: updatedEmails
