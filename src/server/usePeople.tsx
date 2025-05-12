@@ -23,7 +23,7 @@ export default function usePeople() {
       const peopleCollection = collection(db, collectionName)
       const querySnapshot = await getDocs<any, any>(peopleCollection);
       const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      return data.map(person => ({...person, timestamp: person.timestamp.toDate(), birthDate: person.birthDate.toDate() })) as Person[];
+      return data.map(person => ({ ...person, timestamp: person.timestamp.toDate(), birthDate: person.birthDate.toDate() })) as Person[];
     } catch (error) {
       return []
     }

@@ -26,4 +26,5 @@ export type Person = {
 export type JoinRequest = {
     email: string;
     name: string;
+    id?: string;
 };
