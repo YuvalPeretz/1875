@@ -81,14 +81,7 @@ const translations = {
   "workplace": "מקום עבודה",
   "spouseOccupation": "באיזה תחום הבת / בן זוג עוסק/ת?",
   "hobbies": "יש לך תחביבים / תחומי עניין?",
-  "childrenCount": "האם יש ילדים? אם כן, כמה?",
-  "childrenAges": "גילאי הילדים (אפשר לסמן כמה)",
-  "motivation": "נשמח לשמוע מה הניע אותך להתנדב חזרה מפטור",
-  "expectations": "מה הציפיות שלך מהשירות בגדוד? מה חשוב לך להשיג / לחוות?",
-  "specialNeeds": "האם יש צרכים / אתגרים מיוחדים שכדאי שנכיר?",
-  "participationInLeisure": "האם תרצה להשתתף בפעילות פנאי עם חיילי הפלוגה מחוץ לימי המילואים?",
   "leadershipParticipation": "תרצה לקחת חלק פעיל בהובלת הלכידות וחיזוק הקשרים הבין אישיים בפלוגה שלך?",
-  "supportArea": "האם יש תחום בו תרצה לסייע לחיילי הפלוגה / להוביל פעילות / לתרום?",
   "availableAssets": "האם יש נכס ברשותך שיכול לסייע לערבי פלוגה / גדוד (בית, אולם, בריכה...)"
 };
 
@@ -167,7 +160,7 @@ const LandingPage: React.FC = () => {
     if (!searchText) return null;
 
     const filteredEntries = Object.entries(person)
-      .filter(([key]) => !['id', 'timestamp'].includes(key))
+      .filter(([key]) => !['id', 'timestamp'].includes(key) && key in translations)
       .map(([key, value]) => {
         const label = translations[key as keyof typeof translations];
         //@ts-ignore
@@ -317,7 +310,7 @@ const LandingPage: React.FC = () => {
                         style={{ width: isMobile ? '100%' : 300 }}
                       >
                         <Flex vertical gap={8}>
-                          <Typography.Text strong type="secondary">{person.company}</Typography.Text>
+                          <Typography.Text strong type="secondary">{translations["company"]}: {person.company}</Typography.Text>
                           <Typography.Link href={`mailto:${person.email}`}>{person.email}</Typography.Link>
                           <Typography.Text>{person.phone}</Typography.Text>
                           {getFilteredValues(person)}
@@ -404,7 +397,7 @@ const LandingPage: React.FC = () => {
                             </Select>
                           </Form.Item>
                         </Col>
-                        <Form.Item label="גילאי הילדים (ניתן להוסיף מספר שדות):">
+                        {/* <Form.Item label="גילאי הילדים (ניתן להוסיף מספר שדות):">
                           <Form.List name="children">
                             {(fields, { add, remove }) => (
                               <>
@@ -439,23 +432,23 @@ const LandingPage: React.FC = () => {
                               </>
                             )}
                           </Form.List>
-                        </Form.Item>
-                        <Col xs={24}>
+                        </Form.Item> */}
+                        {/* <Col xs={24}>
                           <Form.Item name="motivation" label="נשמח לשמוע מה הניע אותך להתנדב חזרה מפטור" rules={[{ required: true, message: "נא להזין מוטיבציה" }]}>
                             <Input.TextArea />
                           </Form.Item>
-                        </Col>
-                        <Col xs={24}>
+                        </Col> */}
+                        {/* <Col xs={24}>
                           <Form.Item name="expectations" label="מה הציפיות שלך מהשירות בגדוד? מה חשוב לך להשיג / לחוות?" rules={[{ required: true, message: "נא להזין ציפיות" }]}>
                             <Input.TextArea />
                           </Form.Item>
-                        </Col>
-                        <Col xs={24}>
+                        </Col> */}
+                        {/* <Col xs={24}>
                           <Form.Item name="specialNeeds" label="האם יש צרכים / אתגרים מיוחדים שכדאי שנכיר?">
                             <Input.TextArea />
                           </Form.Item>
-                        </Col>
-                        <Col xs={24} sm={12}>
+                        </Col> */}
+                        {/* <Col xs={24} sm={12}>
                           <Form.Item name="participationInLeisure" label="האם תרצה להשתתף בפעילות פנאי עם חיילי הפלוגה מחוץ לימי המילואים?">
                             <Select>
                               <Option value="כן">כן</Option>
@@ -463,7 +456,7 @@ const LandingPage: React.FC = () => {
                               <Option value="אולי">אולי</Option>
                             </Select>
                           </Form.Item>
-                        </Col>
+                        </Col> */}
                         <Col xs={24} sm={12}>
                           <Form.Item name="leadershipParticipation" label="תרצה לקחת חלק פעיל בהובלת הלכידות וחיזוק הקשרים הבין אישיים בפלוגה שלך?">
                             <Select>
@@ -473,11 +466,11 @@ const LandingPage: React.FC = () => {
                             </Select>
                           </Form.Item>
                         </Col>
-                        <Col xs={24}>
+                        {/* <Col xs={24}>
                           <Form.Item name="supportArea" label="האם יש תחום בו תרצה לסייע לחיילי הפלוגה / להוביל פעילות / לתרום?">
                             <Input.TextArea />
                           </Form.Item>
-                        </Col>
+                        </Col> */}
                         <Col xs={24}>
                           <Form.Item name="availableAssets" label="האם יש נכס ברשותך שיכול לסייע לערבי פלוגה / גדוד (בית, אולם, בריכה...)">
                             <Input.TextArea />
@@ -516,7 +509,7 @@ const LandingPage: React.FC = () => {
             {selectedPerson && (
               <List
                 itemLayout="horizontal"
-                dataSource={Object.entries(selectedPerson).filter(([key]) => !['id', 'timestamp'].includes(key))}
+                dataSource={Object.entries(selectedPerson).filter(([key]) => !['id', 'timestamp'].includes(key) && key in translations)}
                 renderItem={([key, value]) => {
                   const label = translations[key as keyof typeof translations] || key;
                   //@ts-ignore
